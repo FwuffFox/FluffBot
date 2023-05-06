@@ -25,7 +25,7 @@ public static class Program
                 IConfigurationRoot config = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddJsonFile("secret.config.json", true, true)
-                    .AddUserSecrets(Assembly.Load("FluffBot"), true, true)
+                    .AddUserSecrets(Assembly.GetEntryAssembly()!, true, true)
                     .AddEnvironmentVariables()
                     .AddCommandLine(args)
                     .Build();

@@ -1,7 +1,8 @@
-using System.Net;
 using System.Text.Json;
 using Discord;
 using Discord.Commands;
+using FluffBot.Extensions;
+using Flurl;
 
 namespace FluffBot;
 
@@ -36,32 +37,49 @@ public class BasicCommands : ModuleBase<SocketCommandContext>
     }
 
     private readonly HttpClient _boredomApi = new HttpClient();
-    
+
+    private readonly Url _url = "https://www.boredapi.com/api/activity";
+        
     [Command("boredom")]
     [Summary("Find an activity to do")]
-    private async Task BoredomApi()
+    private async Task BoredomApi(BoredomNameableArgs? args = null)
     {
-        var response = await _boredomApi.GetAsync("https://www.boredapi.com/api/activity");
+        Url? fullUrl = _url.SetQueryParams(new
+            {
+                type = args?.Type,
+                key = args?.Key,
+            });
+        HttpResponseMessage response = await _boredomApi.GetAsync(fullUrl);
         var obj = await JsonSerializer.DeserializeAsync<BoredomApiResponse>(
             await response.Content.ReadAsStreamAsync(),
             new JsonSerializerOptions()
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            }
-            );
+            });
 
-        var embedBuilder = new EmbedBuilder()
-            .WithTitle(obj.Type)
-            .WithDescription(obj.Activity);
-
-        Console.WriteLine(JsonSerializer.Serialize(obj));
+        EmbedBuilder? embedBuilder = new EmbedBuilder()
+            .WithTitle(obj.Type.ToUpper())
+            .WithDescription(obj.Activity)
+            .With(!string.IsNullOrEmpty(obj.Link),
+                x => x.WithUrl(obj.Link))
+            .WithCurrentTimestamp();
 
         await Context.Channel.SendMessageAsync(embed: embedBuilder.Build());
+        if (!string.IsNullOrEmpty(obj.Link)) await Context.Channel.SendMessageAsync($"Link to more info: {obj.Link}");
     }
+}
+
+[NamedArgumentType]
+public class BoredomNameableArgs
+{
+    public string? Type { get; set; } = null;
+    public string? Key { get; set; } = null;
 }
 
 public struct BoredomApiResponse
 {
     public string Activity { get; set; }
     public string Type { get; set; }
+    
+    public string Link { get; set; }
 }

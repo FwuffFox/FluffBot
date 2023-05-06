@@ -48,8 +48,7 @@ public class CommandHandler : DiscordClientService
     {
         if (socketMsg is not SocketUserMessage message) return;
         if (message.Source != MessageSource.User) return;
-
-        Console.WriteLine(message.Content);
+        
         var argPos = 0;
         if (!message.HasStringPrefix(_config["prefix"], ref argPos) && !message.HasMentionPrefix(_client.CurrentUser, ref argPos)) return;
 
