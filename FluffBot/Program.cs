@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System.Reflection;
+using Discord;
 using Discord.Addons.Hosting;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -7,26 +8,29 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-public class Program
+namespace FluffBot;
+
+public static class Program
 {
     public static async Task Main(string[] args)
     {
         IHostBuilder builder = new HostBuilder()
+            .ConfigureLogging(x =>
+            {
+                x.AddConsole();
+                x.SetMinimumLevel(LogLevel.Debug);
+            })
             .ConfigureAppConfiguration(x =>
             {
-                var config = new ConfigurationBuilder()
+                IConfigurationRoot config = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("secret.config.json", false, true)
+                    .AddJsonFile("secret.config.json", true, true)
+                    .AddUserSecrets(Assembly.Load("FluffBot"), true, true)
                     .AddEnvironmentVariables()
                     .AddCommandLine(args)
                     .Build();
                 
                 x.AddConfiguration(config);
-            })
-            .ConfigureLogging(x =>
-            {
-                x.AddConsole();
-                x.SetMinimumLevel(LogLevel.Debug);
             })
             .ConfigureDiscordHost((context, config) =>
             {
@@ -55,7 +59,7 @@ public class Program
             .UseConsoleLifetime();
 
         
-        using var host = builder.Build();
+        using IHost host = builder.Build();
         await host.RunAsync();
     }
 }
