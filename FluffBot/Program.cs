@@ -1,12 +1,17 @@
 ﻿using System.Reflection;
+using System.Text.Json;
 using Discord;
 using Discord.Addons.Hosting;
-using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
+using FluffBot.Extensions;
+using FluffBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using JsonSerializer = FluffBot.Services.JsonSerializer;
+using RunMode = Discord.Commands.RunMode;
 
 namespace FluffBot;
 
@@ -51,10 +56,19 @@ public static class Program
                 config.LogLevel = LogSeverity.Debug;
                 config.DefaultRunMode = RunMode.Async;
             })
+            .UseInteractionService((context, config) =>
+            {
+                config.LogLevel = LogSeverity.Debug;
+            })
             .ConfigureServices((context, services) =>
             {
                 services
-                    .AddHostedService<CommandHandler>();
+                    .AddHostedService<CommandHandler>()
+                    .AddHostedService<InteractionHandler>()
+                    .AddSingleton(new JsonSerializer(new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    }));
             })
             .UseConsoleLifetime();
 

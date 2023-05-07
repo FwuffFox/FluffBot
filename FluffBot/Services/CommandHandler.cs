@@ -6,30 +6,35 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
+namespace FluffBot.Services;
+
 public class CommandHandler : DiscordClientService
 {
-    private readonly IServiceProvider _provider;
+    private readonly IServiceProvider _serviceProvider;
     private readonly CommandService _commandService;
     private readonly IConfiguration _config;
     private readonly DiscordSocketClient _client;
+    private ILogger<CommandHandler> _logger;
 
     public CommandHandler(DiscordSocketClient client,
         ILogger<CommandHandler> logger,
-        IServiceProvider provider, CommandService commandService,
+        IServiceProvider serviceProvider,
+        CommandService commandService,
         IConfiguration config) : base(client, logger)
     {
-        _provider = provider;
+        _serviceProvider = serviceProvider;
         _commandService = commandService;
         _config = config;
         _client = client;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         Client.MessageReceived += ClientOnMessageReceived;
         _commandService.CommandExecuted += CommandServiceOnCommandExecuted;
-        await _commandService.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
-        
+        await _commandService.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
+        _logger.LogInformation($"{nameof(InteractionHandler)} is up and Running!");
     }
 
     private async Task CommandServiceOnCommandExecuted(Optional<CommandInfo> commandInfo,
@@ -53,6 +58,6 @@ public class CommandHandler : DiscordClientService
         if (!message.HasStringPrefix(_config["prefix"], ref argPos) && !message.HasMentionPrefix(_client.CurrentUser, ref argPos)) return;
 
         var context = new SocketCommandContext(_client, message);
-        await _commandService.ExecuteAsync(context, argPos, _provider);
+        await _commandService.ExecuteAsync(context, argPos, _serviceProvider);
     }
 }
